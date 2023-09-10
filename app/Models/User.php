@@ -8,6 +8,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
+// use soft delete and uuids
+use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Traits\Uuids;
+
+
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
