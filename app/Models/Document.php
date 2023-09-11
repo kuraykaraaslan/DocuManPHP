@@ -14,6 +14,8 @@ Thic model can have multiple owner teams
 and can have multiple releationships that has multiple related documents
 */
 
+use App\Models\Input;
+
 
 class Document extends Model
 {
@@ -47,112 +49,109 @@ class Document extends Model
 
 
     /** 
-     * Has relationships with other documents
+     * Check Access Level
+     * 
+     * @param User $user
+     * @param Team $team
+     * @return int // 0 = no access, 1 = read access, 2 = write access
      */
 
-
-    public function relationships()
-    {
-        Log::info('Document relationships called', ['document' => $this->id]);
-        return $this->hasMany(Relationship::class);
-    }
-
-
-    function template()
+    public function template()
     {
         Log::info('Document template called', ['document' => $this->id]);
         return $this->belongsTo(Template::class);
     }
 
-
-    function owners()
+    public function releationships()
     {
-        Log::info('Document owners called', ['document' => $this->id]);
-        return $this->hasManyThrough(User::class, Ownership::class);
+        Log::info('Document releationships called', ['document' => $this->id]);
+        return $this->hasMany(Releationship::class);
     }
 
-    function reversedRelationships()
-    {
-        Log::info('Document reversedRelationships called', ['document' => $this->id]);
-        // in releationship model has an array of related documents
-        // this function will return all the releationships that has this document id in the related documents array
-
-        return Relationship::whereJsonContains('related_documents', $this->id)->get();
-
-    }
-
-    function teams()
+    public function teams()
     {
         Log::info('Document teams called', ['document' => $this->id]);
-        return $this->hasManyThrough(Team::class, Ownership::class);
+        return $this->belongsToMany(Team::class, 'releationships');
     }
 
-    function values()
+
+    public function set_vaule(Input $input, $data)
     {
-        Log::info('Document values called', ['document' => $this->id]);
-        // values are stored in the data field of the document
-        // the data field is an array
-        // the values are stored in the values array
+        $vaules = $this->vaules;
 
-        /*
-         item = [
-             'input_id' => UUID, // string // name
-             'type' => 'string', // string // type
-             'data' => '35kcd32' // string // value
-            ]
-
-        */
-
-        /*
-        input id refers to the input id in the template
-        */
-
-        // cheeck if values is an array
-
-        if (!is_array($this->values)) {
-            Log::info('Document values is not an array repaireing', ['document' => $this->id]);
-            $this->values = [];
-            $this->save();
+        //if vaules is not an array, make it an array
+        if (!is_array($vaules)) {
+            $vaules = [];
         }
 
-        // for each value check if the input id is in the template
+        $input_type = $input->type;
 
-        $templateInputs = $this->template->inputs;
-
-        // for each value 
-
-        foreach ($this->values as $key => $item) {
-            // check if the input id is in the template
-            $input = $templateInputs->where('id', $key)->first();
-
-            if (!$input) {
-                // remove the value
-                unset($this->values[$key]);
-            }
-
-
-            // check if the input type is match the value type
-            if ($input->type != $item['type']) {
-                
-                // if the type is not match then convert the value to the type of the input
-                try {
-                    $this->values[$key]['data'] = $this->convertValue($item['data'], $item['type'], $input->type);
-                    Log::info('Document value converted', ['document' => $this->id, 'value' => $item]);
-                } catch (\Throwable $th) {
-                    // if the value can not be converted , empty the data
-                    $this->values[$key]['data'] = '';
-                    Log::info('Document value can not be converted', ['document' => $this->id, 'value' => $item]);
-                }
-
-            }
-
+        //check if input type matches data type
+        if (gettype($data) != $input_type) {
+            return false;
         }
 
-        $this->save();
+        // set vaule
+        $vaules[$input->id] = $data;
 
-        return $this->values;
+        // update vaules
+        $this->update([
+            'vaules' => $vaules
+        ]);
+
+        return true;
+
+    }
+
+    public function get_vaule(Input $input)
+    {
+        $vaules = $this->vaules;
+
+        //if vaules is not an array, make it an array
+        if (!is_array($vaules)) {
+            $vaules = [];
+        }
+
+        // get vaule
+        $vaule = $vaules[$input->id];
+
+        //if vaule is not set, return null
+        if (!isset($vaule)) {
+            return null;
+        }
+
+        return $vaule;
+
+    }
+
+    public function delete_vaule(Input $input)
+    {
+        $vaules = $this->vaules;
+
+        //if vaules is not an array, make it an array
+        if (!is_array($vaules)) {
+            $vaules = [];
+        }
+
+        // delete vaule
+        unset($vaules[$input->id]);
+
+        // update vaules
+        $this->update([
+            'vaules' => $vaules
+        ]);
+
+        return true;
 
     }
 
 }
         
+
+
+
+
+
+
+
+

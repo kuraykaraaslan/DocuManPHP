@@ -25,6 +25,7 @@ class Template extends Model
      */
 
     protected $fillable = [
+        'team_id',
         'title',
         'description',
         'orders'

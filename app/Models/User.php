@@ -36,6 +36,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'is_admin',
     ];
 
     /**
@@ -47,4 +48,11 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    function teams()
+    {
+        //through membership model has many teams
+        return $this->hasManyThrough(Team::class, Membership::class, 'user_id', 'id', 'id', 'team_id');
+    }
+
 }

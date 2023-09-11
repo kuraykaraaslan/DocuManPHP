@@ -29,7 +29,7 @@ class Membership extends Model
     protected $fillable = [
         'team_id',
         'user_id',
-        'role',
+        'role', // 'admin', 'editor', 'viewer'
         'data'
     ];
 
