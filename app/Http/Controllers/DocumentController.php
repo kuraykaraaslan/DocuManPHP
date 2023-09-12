@@ -19,7 +19,7 @@ class DocumentController extends Controller
         'title',
         'description',
         'template_id',
-        'vaules'
+        'values'
     ];
 
     */
@@ -68,7 +68,7 @@ class DocumentController extends Controller
         $request->validate([
             'title' => 'required|string',
             'description' => 'nullable|string',
-            'template_id' => 'required|uuid',
+            'template' => 'required|uuid',
             'values' => 'nullable|array'
         ]);
 
@@ -89,8 +89,8 @@ class DocumentController extends Controller
         $document = Document::create([
             'title' => $request->title,
             'description' => $request->description,
-            'template_id' => $request->template_id,
-            'values' => []
+            'template_id' => $request->template,
+            'values' => null
         ]);
 
         // create ownership
@@ -98,7 +98,7 @@ class DocumentController extends Controller
         $ownership = Ownership::create([
             'team_id' => $team->id,
             'document_id' => $document->id,
-            'data' => []
+            'data' => null
         ]);
 
         // return document
@@ -121,11 +121,11 @@ class DocumentController extends Controller
             return response()->json(['message' => 'You do not have access to this team'], 403);
         }
 
-        // get ownership
-        $ownership = $document->ownership()->where('team_id', $team->id)->first();
+        // get document teams
+        $document_teams = $document->teams()->get();
 
-        // if ownership does not exist, return error
-        if (!$ownership) {
+        // if document teams does not contain team, return error
+        if (!$document_teams->contains($team)) {
             return response()->json(['message' => 'You do not have access to this document'], 403);
         }
 
@@ -135,7 +135,7 @@ class DocumentController extends Controller
 
     /**
      * Update document
-     * Updating vaules is not allowed here, use the values endpoint instead
+     * Updating values is not allowed here, use the values endpoint instead
      * @return \Illuminate\Http\Response
      */
 
@@ -195,20 +195,15 @@ class DocumentController extends Controller
     }
 
     /**
-     * vaule endpoint
+     * value endpoint
      *
      * @return \Illuminate\Http\Response
      */
 
-    public function value(Request $request, Team $team, Document $document, Input $input)
+    public function value(Request $request, Team $team, Document $document)
     {
         // validate request
         // has input_id and value
-
-        $request->validate([
-            'input_id' => 'required|uuid',
-            'data' => 'required'
-        ]);
 
         //check if user has access to team
         $accessLevel = $team->checkAccessLevel($request->user());
@@ -218,7 +213,7 @@ class DocumentController extends Controller
         }
 
         // get ownership
-        $ownership = $document->ownership()->where('team_id', $team->id)->first();
+        $ownership = $document->teams()->where('team_id', $team->id)->first();
 
         // if ownership does not exist, return error
         if (!$ownership) {
@@ -226,38 +221,69 @@ class DocumentController extends Controller
         }
 
         // get input
-        $input = $document->template->inputs()->find($request->input_id);
+        $input = $document->template->inputs()->find($request->input);
 
         // if input does not exist, return error
         if (!$input) {
             return response()->json(['message' => 'Input does not exist'], 404);
         }
 
-        // if the method POST is used, create vaule
+        // if the method POST is used, create value
         if ($request->method() == 'POST') {
-            // create vaule
-            $document->set_vaule($input, $request->data);
+
+            $request->validate([
+                'input' => 'required|uuid',
+                'data' => 'required'
+            ]);
+
+            // create value
+            $document->set_value($input, $request->data);
 
             // return document
             return response()->json(['document' => $document], 200);
         }
 
-        // if the method GET is used, get vaule
+        // if the method GET is used, get value
         if ($request->method() == 'GET') {
-            // get vaule
-            $vaule = $document->get_vaule($input);
+            // get value
+            $value = $document->get_value($input);
 
-            // return vaule
-            return response()->json(['vaule' => $vaule], 200);
+            // return value
+            return response()->json(['value' => $value], 200);
         }
 
-        // if the method DELETE is used, delete vaule
+        // if the method DELETE is used, delete value
         if ($request->method() == 'DELETE') {
-            // delete vaule
-            $document->delete_vaule($input);
+            // delete value
+            $document->delete_value($input);
 
             // return document
             return response()->json(['document' => $document], 200);
         }
+    }
+
+    public function fields(Request $request, Team $team, Document $document)
+    {
+
+        //check if user has access to team
+        $accessLevel = $team->checkAccessLevel($request->user());
+
+        if ($accessLevel < 2) {
+            return response()->json(['message' => 'You do not have write access to this team'], 403);
+        }
+
+        // get ownership
+        $ownership = $document->teams()->where('team_id', $team->id)->first();
+
+        // if ownership does not exist, return error
+        if (!$ownership) {
+            return response()->json(['message' => 'You do not have access to this document'], 403);
+        }
+
+        // get input
+        $inputs = $document->template->inputs()->get();
+
+        // return inputs
+        return response()->json(['fields' => $inputs], 200);
     }
 }

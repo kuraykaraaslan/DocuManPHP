@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('releationships', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
+            $table->uuid('document_id');
+            $table->uuid('title');
+            $table->json('releated_documents')->nullable();
             $table->timestamps();
+            $table->timestamp('deleted_at')->nullable();
         });
     }
 

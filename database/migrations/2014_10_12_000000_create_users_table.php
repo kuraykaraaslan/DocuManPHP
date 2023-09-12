@@ -20,6 +20,8 @@ return new class extends Migration
             $table->string('password');
             $table->rememberToken();
             $table->timestamps();
+            // soft delete
+            $table->timestamp('deleted_at')->nullable();
         });
     }
 

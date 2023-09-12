@@ -15,7 +15,7 @@ use App\Traits\Uuids;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes, Uuids;
 
     /**
      * The attributes that are mass assignable.
@@ -36,7 +36,6 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
-        'is_admin',
     ];
 
     /**

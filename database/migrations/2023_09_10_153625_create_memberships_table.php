@@ -12,8 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('memberships', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
+            $table->uuid('team_id');
+            $table->uuid('user_id');
+            $table->string('role')->default('editor');
+            $table->json('data')->nullable();
             $table->timestamps();
+            $table->timestamp('deleted_at')->nullable();
         });
     }
 

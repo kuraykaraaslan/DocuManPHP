@@ -12,8 +12,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('inputs', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
+            $table->uuid('template_id');
+            $table->string('name');
+            $table->string('type')->default('string');
+            $table->string('value')->nullable();
+            $table->boolean('required')->default(0);
+            $table->json('options')->nullable();
+            $table->string('placeholder')->nullable();
+            $table->string('label')->nullable();
+            $table->string('description')->nullable();
+            $table->string('validation')->nullable();
+            $table->string('validation_message')->nullable();
+            $table->json('data')->nullable();
             $table->timestamps();
+            $table->timestamp('deleted_at')->nullable();
         });
     }
 

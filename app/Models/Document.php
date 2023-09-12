@@ -31,7 +31,7 @@ class Document extends Model
         'title',
         'description',
         'template_id',
-        'vaules'
+        'values'
     ];
 
 
@@ -71,17 +71,17 @@ class Document extends Model
     public function teams()
     {
         Log::info('Document teams called', ['document' => $this->id]);
-        return $this->belongsToMany(Team::class, 'releationships');
+        return $this->belongsToMany(Team::class, 'ownerships');
     }
 
 
-    public function set_vaule(Input $input, $data)
+    public function set_value(Input $input, $data)
     {
-        $vaules = $this->vaules;
+        $values = $this->values;
 
-        //if vaules is not an array, make it an array
-        if (!is_array($vaules)) {
-            $vaules = [];
+        //if values is not an array, make it an array
+        if (!is_array($values)) {
+            $values = [];
         }
 
         $input_type = $input->type;
@@ -92,61 +92,72 @@ class Document extends Model
         }
 
         // set vaule
-        $vaules[$input->id] = $data;
+        $values[$input->id] = $data;
 
-        // update vaules
+        // update values
         $this->update([
-            'vaules' => $vaules
+            'values' => $values
         ]);
 
         return true;
 
     }
 
-    public function get_vaule(Input $input)
+    public function get_value(Input $input)
     {
-        $vaules = $this->vaules;
+        $values = $this->values;
 
-        //if vaules is not an array, make it an array
-        if (!is_array($vaules)) {
-            $vaules = [];
+        //if values is not an array, make it an array
+        if (!is_array($values)) {
+            $values = [];
+        }
+
+        // check if vaule exists
+        if (!array_key_exists($input->id, $values)) {
+            return false;
         }
 
         // get vaule
-        $vaule = $vaules[$input->id];
-
-        //if vaule is not set, return null
-        if (!isset($vaule)) {
-            return null;
-        }
+        $vaule = $values[$input->id];
 
         return $vaule;
 
     }
 
-    public function delete_vaule(Input $input)
+    public function delete_value(Input $input)
     {
-        $vaules = $this->vaules;
+        $values = $this->values;
 
-        //if vaules is not an array, make it an array
-        if (!is_array($vaules)) {
-            $vaules = [];
+        //if values is not an array, make it an array
+        if (!is_array($values)) {
+            $values = [];
         }
 
         // delete vaule
-        unset($vaules[$input->id]);
+        unset($values[$input->id]);
 
-        // update vaules
+        // update values
         $this->update([
-            'vaules' => $vaules
+            'values' => $values
         ]);
 
         return true;
 
     }
 
-}
-        
+    public function get_inputs()
+    {
+        $inputs = $this->template->inputs;
+
+        //if inputs is not an array, make it an array
+        if (!is_array($inputs)) {
+            $inputs = [];
+        }
+
+        return $inputs;
+
+    }
+} 
 
 
 

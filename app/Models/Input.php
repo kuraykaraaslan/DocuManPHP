@@ -5,9 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+// use soft delete and uuids
+use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Traits\Uuids;
+
 class Input extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes, Uuids;
 
     /* This model will describe the input fields of a template
     - name: the name of the field
