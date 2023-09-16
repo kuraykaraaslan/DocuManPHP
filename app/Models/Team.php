@@ -27,6 +27,13 @@ class Team extends Model
         'description',
     ];
 
+    //hide these attributes when serializing
+    protected $hidden = [
+        'deleted_at',
+        'created_at',
+        'updated_at',
+    ];
+
     function users()
     {
         return $this->belongsToMany('App\Models\User', 'memberships')

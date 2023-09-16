@@ -21,6 +21,7 @@ class Releationship extends Model
     use HasFactory, SoftDeletes, Uuids;
 
 
+
     /**
      * The attributes that are mass assignable.
      *
@@ -28,9 +29,15 @@ class Releationship extends Model
      */
 
     protected $fillable = [
-        'document_id',
-        'title',
         'related_documents' //json
+    ];
+
+    //hide these attributes when serializing
+    protected $hidden = [
+        'related_documents',
+        'deleted_at',
+        'created_at',
+        'updated_at',
     ];
 
     // get the document that owns the relationship
@@ -44,33 +51,41 @@ class Releationship extends Model
 
     function releatedDocuments()
     {
-        // check if the releated_documents is an array
-        if (!is_array($this->related_documents)) {
-            Log::info('Releationship related is not an array repaireing', ['releationship' => $this->id]);
-            $this->related_documents = [];
-            $this->save();
-        }
+        $rel = $this->related_documents;
 
-        $documents = Document::findMany($this->related_documents);
+        $rel = json_decode($rel);
 
-        return $documents;
+        return $rel;
 
     }
 
-    function addReleatedDocument($document)
+    function addDocument($document)
     {
-        // check if the releated_documents is an array
-        if (!is_array($this->related_documents)) {
+
+        // get the releated_documents and convert it to an array
+        $rel = $this->related_documents;
+
+        $rel = json_decode($rel);       
+
+        // check if $rel is an array
+        if (!is_array($rel)) {
             Log::info('Releationship related is not an array repaireing', ['releationship' => $this->id]);
-            $this->related_documents = [];
-            $this->save();
+            $rel = [];
+        }
+
+        // check if the document is already in the array
+        if (in_array($document->id, $rel)) {
+            return false;
         }
 
         // add the document id to the array
-        $this->related_documents[] = $document->id;
+        array_push($rel, $document->id);
+
+        // save the array
+        $this->related_documents = $rel;
         $this->save();
 
-        return $this->related_documents;
+        return true;
     }
 
     function removeReleatedDocument($document)
@@ -87,6 +102,26 @@ class Releationship extends Model
         $this->save();
 
         return $this->related_documents;
+    }
+
+    // costum serialize
+    public function toArray()
+    {
+        $array = parent::toArray();
+
+        $array['related_documents'] = $this->releatedDocuments();
+
+        //if owner is present
+        if ($this->owner) {
+            $owner = $this->owner->toArray();
+            $array['title'] = $owner['title'];
+            $array['description'] = $owner['description'];
+        } else {
+            $array['title'] = 'Owner not found';
+            $array['description'] = 'Owner not found';
+        }
+
+        return $array;
     }
 
 }

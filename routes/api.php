@@ -8,6 +8,7 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\InputController;
 use App\Http\Controllers\TemplateController;
+use App\Http\Controllers\ReleationshipController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -51,6 +52,7 @@ Route::middleware(['auth:sanctum'])->prefix('team')->group(function () {
         return $request->user()->teams()->get();
     });
 
+    Route::post('/create', [TeamController::class, 'store']);
 
     // Route for {team}
 
@@ -70,8 +72,21 @@ Route::middleware(['auth:sanctum'])->prefix('team')->group(function () {
             Route::get('/', [DocumentController::class, 'index']);
             Route::post('/add', [DocumentController::class, 'store']);
 
+            Route::prefix('/relationships')->group(function () {
+                Route::get('/', [ReleationshipController::class, 'index']);
+                Route::post('/add', [ReleationshipController::class, 'store']);
+                Route::post('/remove', [ReleationshipController::class, 'destroy']);
+
+                Route::prefix('{releationship}')->group(function () {
+                    Route::get('/', [ReleationshipController::class, 'show']);
+                    Route::post('/add', [ReleationshipController::class, 'addDocument']);
+                    Route::post('/remove', [ReleationshipController::class, 'removeDocument']);
+                });
+            });
+
             Route::prefix('{document}')->group(function () {
                 Route::get('/', [DocumentController::class, 'show']);
+                Route::get('/show', [DocumentController::class, 'show']);
                 Route::post('/update', [DocumentController::class, 'update']);
                 Route::post('/remove', [DocumentController::class, 'destroy']);
                 Route::get('/fields', [DocumentController::class, 'fields']);

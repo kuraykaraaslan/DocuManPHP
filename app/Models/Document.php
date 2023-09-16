@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\Uuids;
@@ -45,6 +46,7 @@ class Document extends Model
         'deleted_at',
         'created_at',
         'updated_at',
+        'vaules'
     ];
 
 
@@ -64,8 +66,15 @@ class Document extends Model
 
     public function releationships()
     {
+        /* releationships has releated_documents array and in array there is document ids */
         Log::info('Document releationships called', ['document' => $this->id]);
-        return $this->hasMany(Releationship::class);
+        $releationships_raw = DB::table('releationships')->whereJsonContains('related_documents', $this->id)->get();
+        $releationships = [];
+        foreach ($releationships_raw as $releationship_raw) {
+            $releationships[] = Releationship::find($releationship_raw->id);
+        }
+
+        return $releationships;
     }
 
     public function teams()
@@ -93,6 +102,7 @@ class Document extends Model
 
         // set vaule
         $values[$input->id] = $data;
+
 
         // update values
         $this->update([
@@ -150,12 +160,21 @@ class Document extends Model
         $inputs = $this->template->inputs;
 
         //if inputs is not an array, make it an array
-        if (!is_array($inputs)) {
-            $inputs = [];
-        }
 
         return $inputs;
 
+    }
+
+    // costum serialize
+    public function toArray()
+    {
+        $array = parent::toArray();
+        $array['template'] = $this->template;
+        $array['releationships'] = $this->releationships();
+        $array['teams'] = $this->teams;
+        $array['created_at'] = $this->created_at->format('Y-m-d H:i:s');
+        $array['inputs'] = $this->get_inputs();
+        return $array;
     }
 } 
 

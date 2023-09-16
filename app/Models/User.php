@@ -54,4 +54,12 @@ class User extends Authenticatable
         return $this->hasManyThrough(Team::class, Membership::class, 'user_id', 'id', 'id', 'team_id');
     }
 
+    // costum serialize
+    public function toArray()
+    {
+        $array = parent::toArray();
+        $array['teams'] = $this->teams;
+        return $array;
+    }
+
 }

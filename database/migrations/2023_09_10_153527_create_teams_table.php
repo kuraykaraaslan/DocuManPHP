@@ -15,7 +15,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->string('title');
             $table->string('description')->nullable();
-            $table->string('template_id')->nullable();
+            //$table->string('template_id')->nullable();
             //$table->json('values')->nullable();
             $table->timestamps();
             $table->timestamp('deleted_at')->nullable();

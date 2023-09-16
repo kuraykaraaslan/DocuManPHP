@@ -31,6 +31,14 @@ class Template extends Model
         'orders'
     ];
 
+    // hide these attributes when serializing
+    protected $hidden = [
+        'deleted_at',
+        'created_at',
+        'updated_at',
+        'data'
+    ];
+
     function inputs()
     {
         return $this->hasMany(Input::class);

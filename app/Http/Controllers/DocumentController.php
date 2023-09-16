@@ -89,8 +89,7 @@ class DocumentController extends Controller
         $document = Document::create([
             'title' => $request->title,
             'description' => $request->description,
-            'template_id' => $request->template,
-            'values' => null
+            'template_id' => $request->template
         ]);
 
         // create ownership
