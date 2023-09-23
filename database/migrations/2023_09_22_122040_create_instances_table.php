@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('releationships', function (Blueprint $table) {
+        Schema::create('instances', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('name')->nullable();
-            $table->uuid('owner_id')->nullable();
-            $table->json('related_documents')->nullable();
+            $table->uuid('document_id');
+            $table->uuid('input_id');
+            $table->string('value')->nullable();
             $table->timestamps();
             $table->timestamp('deleted_at')->nullable();
         });
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('releationships');
+        Schema::dropIfExists('instances');
     }
 };

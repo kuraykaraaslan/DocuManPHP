@@ -2,130 +2,142 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Membership;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+
 
 class TeamController extends Controller
 {
     /**
-     * Show team 
+     * Give all teams that user is a member of
+     * 
      * @param Request $request
-     * @param Team $team
-     *
      * @return \Illuminate\Http\Response
      */
-    public function index(Request $request, Team $team)
+
+    public function index(Request $request)
     {
-        // get team
-        $team = Team::find($team->id);
+        $user = $request->user();
 
-        // check if user has access to team
-        $accessLevel = $team->checkAccessLevel($request->user());
+        Log::info('Team index called', ['user' => $user->id]);
 
-        if ($accessLevel < 1) {
-            return response()->json(['message' => 'You do not have access to this team'], 403);
-        }
+        $teams = $user->teams;
 
-        // return team
-        return response()->json(['team' => $team], 200);
+        return response()->json(['teams' => $teams], 200);
     }
+
 
     /**
      * Create a new team
-     *
+     * 
+     * @param Request $request
      * @return \Illuminate\Http\Response
      */
+
     public function store(Request $request)
     {
-        // only admins can create teams
-        if (!$request->user()->is_admin) {
-            return response()->json(['message' => 'You do not have permission to create a team'], 403);
-        }
+        $user = $request->user();
 
-        // create team
-        $team = $request->user()->teams()->create([
-            'title' => $request->title,
-            'description' => $request->description,
-            'data' => $request->data
+        Log::info('Team store called', ['user' => $user->id]);
+
+        $this->validate($request, [
+            'name' => 'required|string|max:255',
+            'description' => 'required|string|max:255'
         ]);
 
-        // return team
+        // create team
+
+        $team = new Team();
+        $team->name = $request->name;
+        $team->description = $request->description;
+        $team->save();
+
+        // create membership
+
+        $membership = new Membership();
+        $membership->user_id = $user->id;
+        $membership->team_id = $team->id;
+        $membership->role = 'admin';
+        $membership->save();
+
         return response()->json(['team' => $team], 200);
     }
 
-    public function showUsers(Request $request, Team $team)
+
+    /*
+        * Show a team
+        * 
+        * @param Request $request
+        * @param Team $team
+        * @return \Illuminate\Http\Response
+        */
+
+    public function show(Request $request, Team $team)
     {
-        // get users
-        $users = $team->users()->get();
+        $user = $request->user();
 
-        // check if user has access to team
-        $accessLevel = $team->checkAccessLevel($request->user());
+        Log::info('Team show called', ['user' => $user->id, 'team' => $team->id]);
 
-        if ($accessLevel < 1) {
-            return response()->json(['message' => 'You do not have access to this team'], 403);
-        }
-
-        // return users
-        return response()->json(['users' => $users], 200);
+        return response()->json(['team' => $team], 200);
     }
 
-    public function addUser(Request $request, Team $team)
+
+    /**
+     * Update a team
+     * 
+     * @param Request $request
+     * @param Team $team
+     * @return \Illuminate\Http\Response
+     */
+
+    public function update(Request $request, Team $team)
     {
+        $user = $request->user();
 
-        // get user
-        $user = User::where('id', $request->user)->first();
+        Log::info('Team update called', ['user' => $user->id, 'team' => $team->id]);
 
-        // response al request if user does not exist
-        if (!$user) {
-            return response()->json(['request' => request()->all(), 'message' => 'User does not exist'], 404);
-        }
+        //validate request
 
+        $this->validate($request, [
+            'name' => 'required|string|max:255',
+            'description' => 'required|string|max:255'
+        ]);
 
+        // update team
 
-        // check access level
-        $accessLevel = $team->checkAccessLevel($request->user());
+        $team->update([
+            'name' => $request->name,
+            'description' => $request->description
+        ]);
 
-        if ($accessLevel < 2) {
-            return response()->json(['message' => 'You do not have access to this team'], 403);
-        }
-
-        // add user to team
-        $team->addUser($user);
-
-        // return user
-        return response()->json(['user' => $user], 200);
-
+        return response()->json(['team' => $team], 200);
     }
 
-    public function removeUser(Request $request, Team $team)
+
+    /**
+     * Delete a team
+     * 
+     * @param Request $request
+     * @param Team $team
+     * @return \Illuminate\Http\Response
+     */
+
+    public function destroy(Request $request, Team $team)
     {
+        $user = $request->user();
 
-        // get user
-        $user = User::where('id', $request->user)->first();
+        Log::info('Team destroy called', ['user' => $user->id, 'team' => $team->id]);
 
-        // response al request if user does not exist
-        if (!$user) {
-            return response()->json(['request' => request()->all(), 'message' => 'User does not exist'], 404);
-        }
 
-        // check access level
-        $accessLevel = $team->checkAccessLevel($request->user());
+        // delete team
 
-        if ($accessLevel < 2) {
-            return response()->json(['message' => 'You do not have access to this team'], 403);
-        }
+        $team->delete();
 
-        // remove user from team
-        $team->removeUser($user);
-
-        // return user
-        return response()->json(['user' => $user], 200);
-
+        return response()->json(['message' => 'Team deleted'], 200);
     }
 
 }
 
-
-
-        

@@ -16,7 +16,6 @@ return new class extends Migration
             $table->string('title');
             $table->string('description')->nullable();
             $table->string('template_id');
-            $table->json('values')->default('{}');
             $table->timestamps();
             $table->timestamp('deleted_at')->nullable();
             

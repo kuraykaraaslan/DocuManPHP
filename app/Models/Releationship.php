@@ -20,7 +20,9 @@ class Releationship extends Model
 {
     use HasFactory, SoftDeletes, Uuids;
 
-
+    /* This model will describe the releationships of a document
+    - related_documents: the related documents of the releationship
+    */
 
     /**
      * The attributes that are mass assignable.
@@ -28,8 +30,11 @@ class Releationship extends Model
      * @var array<int, string>
      */
 
+
     protected $fillable = [
-        'related_documents' //json
+        'related_documents', //json
+        'name',
+    
     ];
 
     //hide these attributes when serializing
@@ -40,94 +45,23 @@ class Releationship extends Model
         'updated_at',
     ];
 
-    // get the document that owns the relationship
-
-    public function owner()
+    // get the documents with the ids in the related_documents
+    function documents()
     {
-        return $this->belongsTo(Document::class);
+        Log::info('Releationship documents called', ['releationship' => $this->id]);
+        return Document::whereIn('id', $this->related_documents)->get();
     }
 
-    // releated documents is an array of document ids
-
-    function releatedDocuments()
-    {
-        $rel = $this->related_documents;
-
-        $rel = json_decode($rel);
-
-        return $rel;
-
-    }
-
-    function addDocument($document)
-    {
-
-        // get the releated_documents and convert it to an array
-        $rel = $this->related_documents;
-
-        $rel = json_decode($rel);       
-
-        // check if $rel is an array
-        if (!is_array($rel)) {
-            Log::info('Releationship related is not an array repaireing', ['releationship' => $this->id]);
-            $rel = [];
-        }
-
-        // check if the document is already in the array
-        if (in_array($document->id, $rel)) {
-            return false;
-        }
-
-        // add the document id to the array
-        array_push($rel, $document->id);
-
-        // save the array
-        $this->related_documents = $rel;
-        $this->save();
-
-        return true;
-    }
-
-    function removeReleatedDocument($document)
-    {
-        // check if the releated_documents is an array
-        if (!is_array($this->related_documents)) {
-            Log::info('Releationship related is not an array repaireing', ['releationship' => $this->id]);
-            $this->related_documents = [];
-            $this->save();
-        }
-
-        // remove the document id from the array
-        $this->related_documents = array_diff($this->related_documents, [$document->id]);
-        $this->save();
-
-        return $this->related_documents;
-    }
-
-    // costum serialize
-    public function toArray()
+    /// array to
+    function toArray()
     {
         $array = parent::toArray();
-
-        $array['related_documents'] = $this->releatedDocuments();
-
-        //if owner is present
-        if ($this->owner) {
-            $owner = $this->owner->toArray();
-            $array['title'] = $owner['title'];
-            $array['description'] = $owner['description'];
-        } else {
-            $array['title'] = 'Owner not found';
-            $array['description'] = 'Owner not found';
-        }
-
+        $array['related_documents'] = json_decode($this->related_documents);
         return $array;
     }
-
 }
 
 
-    
 
 
     

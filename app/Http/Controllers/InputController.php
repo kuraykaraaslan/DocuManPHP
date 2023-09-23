@@ -4,28 +4,22 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Team;
-use App\Models\Document;
-use App\Models\Ownership;
 use App\Models\Template;
+use App\Models\Input;
 
 class InputController extends Controller
 {
 
     /*
-    protected $fillable = [
-        'template_id', // the template id of the field
-        'name',
-        'type',
-        'value',
-        'required',
-        'options',
-        'placeholder',
-        'label',
-        'description',
-        'validation',
-        'validation_message',
-        'data'
-    ];
+    - name: the name of the field
+    - type: the type of the field
+    - default: the default value of the field
+    - required: if the field is required
+    - options: the options of the field (if the field is a select)
+    - placeholder: the placeholder of the field
+    - description: the description of the field
+    - validation: the validation of the field
+    - validation_message: the validation message of the field
     */
 
     /**
@@ -38,18 +32,7 @@ class InputController extends Controller
 
     public function index(Request $request, Team $team, Template $template)
     {
-        // get inputs
-        $inputs = $template->inputs()->get();
-
-        //check if user has access to team
-        $accessLevel = $team->checkAccessLevel($request->user());
-
-        if ($accessLevel < 1) {
-            return response()->json(['message' => 'You do not have access to this team'], 403);
-        }
-
-        // return inputs
-        return response()->json(['inputs' => $inputs], 200);
+        return response()->json(['inputs' => $template->inputs], 200);
     }
 
     /**
@@ -59,46 +42,31 @@ class InputController extends Controller
      * @param Template $template
      * @return \Illuminate\Http\Response
      */
+
     public function store(Request $request, Team $team, Template $template)
     {
-        // validate request
-        $request->validate([
-            'name' => 'required|string',
-            'type' => 'required|string',
-            'value' => 'string',
-            'required' => 'boolean',
-            'options' => 'string',
-            'placeholder' => 'string',
-            'label' => 'string',
-            'description' => 'string',
-            'validation' => 'string',
-            'validation_message' => 'string',
-            'data' => 'string'
+        $this->validate($request, [
+            'name' => 'required|string|max:255',
+            'type' => 'required|string|max:255',
+            'default' => 'string|max:255|nullable',
+            'required' => 'boolean|nullable|nullable',
+            'options' => 'string|max:255|nullable',
+            'placeholder' => 'string|max:255|nullable',
+            'description' => 'string|max:255|nullable',
+            'validation' => 'string|max:255|nullable',
+            'validation_message' => 'string|max:255|nullable',
         ]);
-
-        // check if user has access to team
-        $accessLevel = $team->checkAccessLevel($request->user());
-
-        if ($accessLevel < 1) {
-            return response()->json(['message' => 'You do not have access to this team'], 403);
-        }
 
         // create input
-        $input = $template->inputs()->create([
+
+        $input = new Input([
             'name' => $request->name,
             'type' => $request->type,
-            'value' => $request->value,
-            'required' => $request->required,
-            'options' => $request->options,
-            'placeholder' => $request->placeholder,
-            'label' => $request->label,
-            'description' => $request->description,
-            'validation' => $request->validation,
-            'validation_message' => $request->validation_message,
-            'data' => $request->data
+            'template_id' => $template->id,
         ]);
 
-        // return input
+        $input->save();
+
         return response()->json(['input' => $input], 200);
     }
 
@@ -113,17 +81,62 @@ class InputController extends Controller
 
     public function show(Request $request, Team $team, Template $template, Input $input)
     {
-        // get input
-        $input = $template->inputs()->find($input->id);
-
-        // check if user has access to team
-        $accessLevel = $team->checkAccessLevel($request->user());
-
-        if ($accessLevel < 1) {
-            return response()->json(['message' => 'You do not have access to this team'], 403);
-        }
-
-        // return input
         return response()->json(['input' => $input], 200);
+    }
+
+    /**
+     * Update input
+     * @param Request $request
+     * @param Team $team
+     * @param Template $template
+     * @param Input $input
+     * @return \Illuminate\Http\Response
+     */
+
+    public function update(Request $request, Team $team, Template $template, Input $input)
+    {
+        $this->validate($request, [
+            'name' => 'required|string|max:255',
+            'type' => 'required|string|max:255',
+            'default' => 'string|max:255|nullable',
+            'required' => 'boolean|nullable|nullable',
+            'options' => 'string|max:255|nullable',
+            'placeholder' => 'string|max:255|nullable',
+            'description' => 'string|max:255|nullable',
+            'validation' => 'string|max:255|nullable',
+            'validation_message' => 'string|max:255|nullable',
+        ]);
+
+        // update input
+
+        $input->update([
+            'name' => $request->name,
+            'type' => $request->type,
+            'default' => $request->default,
+            'required' => $request->required,
+            'options' => $request->options,
+            'placeholder' => $request->placeholder,
+            'description' => $request->description,
+            'validation' => $request->validation,
+            'validation_message' => $request->validation_message,
+        ]);
+
+        return response()->json(['input' => $input], 200);
+    }
+
+    /**
+     * Delete input
+     * @param Request $request
+     * @param Team $team
+     * @param Template $template
+     * @param Input $input
+     * @return \Illuminate\Http\Response
+     */
+
+    public function destroy(Request $request, Team $team, Template $template, Input $input)
+    {
+        $input->delete();
+
+        return response()->json(['message' => 'Input deleted'], 200);
     }
 }

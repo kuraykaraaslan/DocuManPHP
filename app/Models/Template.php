@@ -49,67 +49,6 @@ class Template extends Model
         return $this->hasMany(Document::class);
     }
 
-    function orders()
-    {
-        // orders are stored in the data field of the template
-        // the data field is an array
-        // the orders are stored in the orders array
-
-        try {
-            $orders = $this->data['orders'];
-        } catch (\Throwable $th) {
-            $orders = [];
-        }
-        
-        /* orders is an array of inputs ids
-        the inputs ids are the ids of the inputs of the template
-
-        */ 
-
-        $inputs = $this->inputs;
-
-        for ($i=0; $i < count($orders); $i++) { 
-            $orders[$i] = $inputs->find($orders[$i]);
-
-            if ($orders[$i] == null) {
-                unset($orders[$i]);
-            }
-
-        }
-
-        return $orders;
-
-    }
-
-    function setOrder($order, $input)
-    {
-        // orders are stored in the data field of the template
-        // the data field is an array
-        // the orders are stored in the orders array
-
-        try {
-            $orders = $this->data['orders'];
-        } catch (\Throwable $th) {
-            $orders = [];
-        }
-
-        /* orders is an array of inputs ids
-        the inputs ids are the ids of the inputs of the template
-
-        */ 
-
-        $inputs = $this->inputs;
-
-        $orders[$order] = $input->id;
-
-        $this->data['orders'] = $orders;
-
-        $this->save();
-
-        return $orders;
-
-    }
-
 }
 
 

@@ -18,6 +18,13 @@ class Ownership extends Model
 {
     use HasFactory, SoftDeletes, Uuids;
 
+    /* This model will describe the ownerships of a team
+    - team_id: the team id of the ownership
+    - document_id: the document id of the ownership
+    - data: the data of the ownership
+    */
+    
+
     /**
      * The attributes that are mass assignable.
      *

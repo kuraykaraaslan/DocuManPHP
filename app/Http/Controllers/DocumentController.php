@@ -8,281 +8,185 @@ use App\Models\Team;
 use App\Models\Ownership;
 use App\Models\Membership;
 use App\Models\Input;
-
+use App\Models\Template;
+use App\Models\Instance;
 use Illuminate\Support\Facades\Log;
 
 class DocumentController extends Controller
 {
-    /*
-        Document model
-        protected $fillable = [
-        'title',
-        'description',
-        'template_id',
-        'values'
-    ];
-
+    /* This model will describe the documents of a team
+    - title: the title of the document
+    - description: the description of the document
+    - template_id: the template id of the document
+    - instances: the instances of the document
+    - teams: the teams of the document
+    - inputs: the inputs of the document's template
     */
 
-    /*
-        Ownership model
-        protected $fillable = [
-        'team_id',
-        'document_id',
-        'data'
+    /* Must have a Ownership model
+    - team_id: the team id of the ownership
+    - document_id: the document id of the ownership
+    - data: Empty
+    */
 
-    ];
+    /* Must have a Instance models
+    - document_id: the document id of the instance
+    - input_id: the input id of the instance
+    - value: the value of the instance
     */
 
     /**
-     * Get all documents of team
-     *
+     * Give all documents that team owns
+     * 
+     * @param Request $request
+     * @param string $team
      * @return \Illuminate\Http\Response
      */
 
     public function index(Request $request, Team $team)
     {
-        // get documents
-        $documents = $team->documents()->get();
 
-        //check if user has access to team
-        $accessLevel = $team->checkAccessLevel($request->user());
+        $user = $request->user();
 
-        if ($accessLevel < 1) {
-            return response()->json(['message' => 'You do not have access to this team'], 403);
-        }
+        Log::info('Document index called', ['user' => $user->id, 'team' => $team->id]);
 
-        // return documents
-        return response()->json(['documents' => $documents], 200);
+        return response()->json(['documents' => $team->documents], 200);
     }
 
     /**
      * Create a new document
-     *
+     * 
+     * @param Request $request
+     * @param string $team
      * @return \Illuminate\Http\Response
      */
 
     public function store(Request $request, Team $team)
     {
-        // validate request
-        $request->validate([
-            'title' => 'required|string',
-            'description' => 'nullable|string',
-            'template' => 'required|uuid',
-            'values' => 'nullable|array'
+
+        $user = $request->user();
+
+        Log::info('Document store called', ['user' => $user->id, 'team' => $team->id]);
+
+        $this->validate($request, [
+            'title' => 'required|string|max:255',
+            'description' => 'required|string|max:255',
+            'template' => 'required|string|max:255'
         ]);
 
-        //check if user has access to team
-        $accessLevel = $team->checkAccessLevel($request->user());
+        // check if team has template
+        $template = Template::where('team_id', $team->id)->where('id', $request->template)->first();
 
-        if ($accessLevel < 2) {
-            return response()->json(['message' => 'You do not have write access to this team'], 403);
-        }
-
-        // if values are provided, return error
-        if ($request->values) {
-            return response()->json(['message' => 'Values are not allowed when creating a document'], 400);
+        if (!$template) {
+            return response()->json(['error' => 'Template not found'], 404);
         }
 
         // create document
 
-        $document = Document::create([
+        $document = new Document([
             'title' => $request->title,
             'description' => $request->description,
-            'template_id' => $request->template
+            'template_id' => $request->template,
         ]);
+
+        $document->save();
+
+        // create instances
+        $inputs = $template->inputs;
+
+        foreach ($inputs as $input) {
+            $instance = new Instance([
+                'input_id' => $input->id,
+                'document_id' => $document->id,
+                'value' => $input->default,
+            ]);
+            $instance->save();
+        }
 
         // create ownership
 
-        $ownership = Ownership::create([
+        $ownership = new Ownership([
             'team_id' => $team->id,
             'document_id' => $document->id,
-            'data' => null
         ]);
 
-        // return document
-        return response()->json(['document' => $document], 201);
-    }
+        $ownership->save();
 
-    /**
-     * Get document
-     *
-     * @return \Illuminate\Http\Response
-     */
-
-
-    public function show(Request $request, Team $team, Document $document)
-    {
-        //check if user has access to team
-        $accessLevel = $team->checkAccessLevel($request->user());
-
-        if ($accessLevel < 1) {
-            return response()->json(['message' => 'You do not have access to this team'], 403);
-        }
-
-        // get document teams
-        $document_teams = $document->teams()->get();
-
-        // if document teams does not contain team, return error
-        if (!$document_teams->contains($team)) {
-            return response()->json(['message' => 'You do not have access to this document'], 403);
-        }
-
-        // return document
         return response()->json(['document' => $document], 200);
     }
 
     /**
-     * Update document
-     * Updating values is not allowed here, use the values endpoint instead
+     * Show a document
+     * 
+     * @param Request $request
+     * @param string $team
+     * @param Document $document
+     * @return \Illuminate\Http\Response
+     */
+
+    public function show(Request $request, Team $team, Document $document)
+    {
+
+        $user = $request->user();
+
+        Log::info('Document show called', ['user' => $user->id, 'team' => $team->id, 'document' => $document->id]);
+
+        return response()->json(['document' => $document], 200);
+    }
+
+    /**
+     * Update a document
+     * 
+     * @param Request $request
+     * @param string $team
+     * @param Document $document
      * @return \Illuminate\Http\Response
      */
 
     public function update(Request $request, Team $team, Document $document)
     {
-        // validate request
-        $request->validate([
-            'title' => 'required|string',
-            'description' => 'nullable|string',
-            'template_id' => 'required|uuid',
-            'values' => 'nullable|array'
+
+        $user = $request->user();
+
+        Log::info('Document update called', ['user' => $user->id, 'team' => $team->id, 'document' => $document->id]);
+
+        //validate request
+
+        $this->validate($request, [
+            'title' => 'required|string|max:255',
+            'description' => 'required|string|max:255'
         ]);
-
-        //check if user has access to team
-        $accessLevel = $team->checkAccessLevel($request->user());
-
-        if ($accessLevel < 2) {
-            return response()->json(['message' => 'You do not have write access to this team'], 403);
-        }
-
-        // if values are provided, return error
-        if ($request->values) {
-            return response()->json(['message' => 'Values are not allowed when updating a document'], 400);
-        }
 
         // update document
+
         $document->update([
             'title' => $request->title,
-            'description' => $request->description,
-            'template_id' => $request->template_id
+            'description' => $request->description
         ]);
 
-        // return document
         return response()->json(['document' => $document], 200);
     }
 
     /**
-     * Delete document
-     *
+     * Delete a document
+     * 
+     * @param Request $request
+     * @param string $team
+     * @param Document $document
      * @return \Illuminate\Http\Response
      */
 
     public function destroy(Request $request, Team $team, Document $document)
     {
-        //check if user has access to team
-        $accessLevel = $team->checkAccessLevel($request->user());
 
-        if ($accessLevel < 2) {
-            return response()->json(['message' => 'You do not have write access to this team'], 403);
-        }
+        $user = $request->user();
+
+        Log::info('Document destroy called', ['user' => $user->id, 'team' => $team->id, 'document' => $document->id]);
 
         // delete document
+
         $document->delete();
 
-        // return document
-        return response()->json(['message' => 'Document deleted'], 200);
-    }
-
-    /**
-     * value endpoint
-     *
-     * @return \Illuminate\Http\Response
-     */
-
-    public function value(Request $request, Team $team, Document $document)
-    {
-        // validate request
-        // has input_id and value
-
-        //check if user has access to team
-        $accessLevel = $team->checkAccessLevel($request->user());
-
-        if ($accessLevel < 2) {
-            return response()->json(['message' => 'You do not have write access to this team'], 403);
-        }
-
-        // get ownership
-        $ownership = $document->teams()->where('team_id', $team->id)->first();
-
-        // if ownership does not exist, return error
-        if (!$ownership) {
-            return response()->json(['message' => 'You do not have access to this document'], 403);
-        }
-
-        // get input
-        $input = $document->template->inputs()->find($request->input);
-
-        // if input does not exist, return error
-        if (!$input) {
-            return response()->json(['message' => 'Input does not exist'], 404);
-        }
-
-        // if the method POST is used, create value
-        if ($request->method() == 'POST') {
-
-            $request->validate([
-                'input' => 'required|uuid',
-                'data' => 'required'
-            ]);
-
-            // create value
-            $document->set_value($input, $request->data);
-
-            // return document
-            return response()->json(['document' => $document], 200);
-        }
-
-        // if the method GET is used, get value
-        if ($request->method() == 'GET') {
-            // get value
-            $value = $document->get_value($input);
-
-            // return value
-            return response()->json(['value' => $value], 200);
-        }
-
-        // if the method DELETE is used, delete value
-        if ($request->method() == 'DELETE') {
-            // delete value
-            $document->delete_value($input);
-
-            // return document
-            return response()->json(['document' => $document], 200);
-        }
-    }
-
-    public function fields(Request $request, Team $team, Document $document)
-    {
-
-        //check if user has access to team
-        $accessLevel = $team->checkAccessLevel($request->user());
-
-        if ($accessLevel < 2) {
-            return response()->json(['message' => 'You do not have write access to this team'], 403);
-        }
-
-        // get ownership
-        $ownership = $document->teams()->where('team_id', $team->id)->first();
-
-        // if ownership does not exist, return error
-        if (!$ownership) {
-            return response()->json(['message' => 'You do not have access to this document'], 403);
-        }
-
-        // get input
-        $inputs = $document->template->inputs()->get();
-
-        // return inputs
-        return response()->json(['fields' => $inputs], 200);
+        return response()->json(['document' => $document], 200);
     }
 }

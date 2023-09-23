@@ -20,6 +20,13 @@ class Membership extends Model
 {
     use HasFactory, SoftDeletes, Uuids;
 
+    /* This model will describe the memberships of a team
+    - team_id: the team id of the membership
+    - user_id: the user id of the membership
+    - role: the role of the membership
+    */
+
+
     /**
      * The attributes that are mass assignable.
      *
@@ -30,7 +37,6 @@ class Membership extends Model
         'team_id',
         'user_id',
         'role', // 'admin', 'editor', 'viewer'
-        'data'
     ];
 
     function user()

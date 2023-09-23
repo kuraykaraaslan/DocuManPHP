@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Membership;
 use Illuminate\Http\Request;
 use App\Models\Team;
+use Illuminate\Support\Facades\Log;
 
 /*
     protected $fillable = [
@@ -28,127 +29,109 @@ class MembershipController extends Controller
 
     public function index(Request $request, Team $team)
     {
+        // Log request
+        Log::info('Membership index called', ['team' => $team->id]);
+        
         // get memberships
         $memberships = $team->memberships()->get();
-
-        //check if user has access to team
-        $accessLevel = $team->checkAccessLevel($request->user());
-
-        if ($accessLevel < 1) {
-            return response()->json(['message' => 'You do not have access to this team'], 403);
-        }
-
-        // return memberships
         return response()->json(['memberships' => $memberships], 200);
     }
 
     /**
      * Create a new membership
      *
+     * @param Request $request
+     * @param Team $team
      * @return \Illuminate\Http\Response
      */
 
     public function store(Request $request, Team $team)
     {
+        // Log request
+        Log::info('Membership store called', ['team' => $team->id]);
+
         // validate request
-        $request->validate([
-            'user_id' => 'required|uuid',
-            'role' => 'required|string',
-            'data' => 'nullable|array'
+        $this->validate($request, [
+            'user_id' => 'required|string|max:255',
+            'role' => 'required|string|max:255'
         ]);
-
-        //check if user has access to team
-        $accessLevel = $team->checkAccessLevel($request->user());
-
-        if ($accessLevel < 2) {
-            return response()->json(['message' => 'You do not have access to this team'], 403);
-        }
 
         // create membership
-        $membership = Membership::create([
-            'team_id' => $team->id,
+        $membership = new Membership([
             'user_id' => $request->user_id,
             'role' => $request->role,
-            'data' => $request->data
+            'team_id' => $team->id
         ]);
+        $membership->save();
 
-        // return membership
-        return response()->json(['membership' => $membership], 201);
+        // return response
+        return response()->json(['membership' => $membership], 200);
     }
 
     /**
      * Get membership
      *
+     * @param Request $request
+     * @param Team $team
+     * @param Membership $membership
      * @return \Illuminate\Http\Response
      */
 
     public function show(Request $request, Team $team, Membership $membership)
     {
-        //check if user has access to team
-        $accessLevel = $team->checkAccessLevel($request->user());
+        // Log request
+        Log::info('Membership show called', ['team' => $team->id, 'membership' => $membership->id]);
 
-        if ($accessLevel < 1) {
-            return response()->json(['message' => 'You do not have access to this team'], 403);
-        }
-
-        // return membership
+        // return response
         return response()->json(['membership' => $membership], 200);
     }
 
     /**
-     * Update membership
+     * Update a membership
      *
+     * @param Request $request
+     * @param Team $team
+     * @param Membership $membership
      * @return \Illuminate\Http\Response
      */
 
     public function update(Request $request, Team $team, Membership $membership)
     {
+        // Log request
+        Log::info('Membership update called', ['team' => $team->id, 'membership' => $membership->id]);
+
         // validate request
-        $request->validate([
-            'user_id' => 'required|uuid',
-            'role' => 'required|string',
-            'data' => 'nullable|array'
+        $this->validate($request, [
+            'role' => 'required|string|max:255'
         ]);
-
-        //check if user has access to team
-        $accessLevel = $team->checkAccessLevel($request->user());
-
-        if ($accessLevel < 2) {
-            return response()->json(['message' => 'You do not have access to this team'], 403);
-        }
 
         // update membership
         $membership->update([
-            'user_id' => $request->user_id,
-            'role' => $request->role,
-            'data' => $request->data
+            'role' => $request->role
         ]);
 
-        // return membership
+        // return response
         return response()->json(['membership' => $membership], 200);
     }
 
     /**
-     * Delete membership
+     * Delete a membership
      *
+     * @param Request $request
+     * @param Team $team
+     * @param Membership $membership
      * @return \Illuminate\Http\Response
      */
-
+    
     public function destroy(Request $request, Team $team, Membership $membership)
     {
-        //check if user has access to team
-        $accessLevel = $team->checkAccessLevel($request->user());
-
-        if ($accessLevel < 2) {
-            return response()->json(['message' => 'You do not have access to this team'], 403);
-        }
+        // Log request
+        Log::info('Membership destroy called', ['team' => $team->id, 'membership' => $membership->id]);
 
         // delete membership
         $membership->delete();
 
-        // return membership
-        return response()->json(['message' => 'Membership deleted'], 200);
+        // return response
+        return response()->json(['membership' => $membership], 200);
     }
 }
-
-

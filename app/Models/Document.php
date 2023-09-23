@@ -22,6 +22,16 @@ class Document extends Model
 {
     use HasFactory, SoftDeletes, Uuids;
 
+    /* This model will describe the documents of a team
+    - title: the title of the document
+    - description: the description of the document
+    - template_id: the template id of the document
+    - instances: the instances of the document
+    - teams: the teams of the document
+    - inputs: the inputs of the document's template
+    */
+
+
     /**
      * The attributes that are mass assignable.
      *
@@ -32,7 +42,6 @@ class Document extends Model
         'title',
         'description',
         'template_id',
-        'values'
     ];
 
 
@@ -46,142 +55,88 @@ class Document extends Model
         'deleted_at',
         'created_at',
         'updated_at',
-        'vaules'
     ];
 
-
-    /** 
-     * Check Access Level
-     * 
-     * @param User $user
-     * @param Team $team
-     * @return int // 0 = no access, 1 = read access, 2 = write access
-     */
-
-    public function template()
+    // get the template of the document
+    function template()
     {
         Log::info('Document template called', ['document' => $this->id]);
         return $this->belongsTo(Template::class);
     }
 
-    public function releationships()
-    {
-        /* releationships has releated_documents array and in array there is document ids */
-        Log::info('Document releationships called', ['document' => $this->id]);
-        $releationships_raw = DB::table('releationships')->whereJsonContains('related_documents', $this->id)->get();
-        $releationships = [];
-        foreach ($releationships_raw as $releationship_raw) {
-            $releationships[] = Releationship::find($releationship_raw->id);
-        }
-
-        return $releationships;
-    }
-
-    public function teams()
+    // get the teams of the document
+    function teams()
     {
         Log::info('Document teams called', ['document' => $this->id]);
         return $this->belongsToMany(Team::class, 'ownerships');
     }
 
-
-    public function set_value(Input $input, $data)
+    // get the instances of the document
+    function instances()
     {
-        $values = $this->values;
+        $template = $this->template;
+        $inputs = $template->inputs;
 
-        //if values is not an array, make it an array
-        if (!is_array($values)) {
-            $values = [];
+        $instances = Instance::where('document_id', $this->id)->get();
+        $inputs = Input::where('template_id', $template->id)->get();
+
+        // create instances for the inputs that does not have instances
+        foreach ($inputs as $input) {
+            $instance = Instance::where('document_id', $this->id)
+                ->where('input_id', $input->id)
+                ->first();
+
+            if (!$instance) {
+                $instance = new Instance();
+                $instance->document_id = $this->id;
+                $instance->input_id = $input->id;
+                $instance->value = '';
+                $instance->save();
+            }
         }
 
-        $input_type = $input->type;
+        // delete instances for the inputs that does not have inputs
+        foreach ($instances as $instance) {
+            $input = $inputs->where('id', $instance->input_id)->first();
 
-        //check if input type matches data type
-        if (gettype($data) != $input_type) {
-            return false;
+            if (!$input) {
+                $instance->delete();
+            }
+
         }
 
-        // set vaule
-        $values[$input->id] = $data;
+        // add the inputs to the instances
+
+        foreach ($instances as $instance) {
+            $input = $inputs->where('id', $instance->input_id)->first();
+            $instance->input = $input;
+        }
 
 
-        // update values
-        $this->update([
-            'values' => $values
-        ]);
-
-        return true;
+        return $instances;
 
     }
 
-    public function get_value(Input $input)
+    // get the inputs of the document
+    function inputs()
     {
-        $values = $this->values;
-
-        //if values is not an array, make it an array
-        if (!is_array($values)) {
-            $values = [];
-        }
-
-        // check if vaule exists
-        if (!array_key_exists($input->id, $values)) {
-            return false;
-        }
-
-        // get vaule
-        $vaule = $values[$input->id];
-
-        return $vaule;
-
+        Log::info('Document inputs called', ['document' => $this->id]);
+        return $this->hasManyThrough(Input::class, Template::class,
+            'id', 'template_id', 'template_id', 'id');
     }
 
-    public function delete_value(Input $input)
+
+    // get the releationships of the document
+    function releationships()
     {
-        $values = $this->values;
+        // find the releationships models that has releated documents that has the document id
+        Log::info('Document releationships called', ['document' => $this->id]);
 
-        //if values is not an array, make it an array
-        if (!is_array($values)) {
-            $values = [];
-        }
+        $releationships = DB::table('releationships')
+            ->whereJsonContains('related_documents', $this->id)
+            ->get();
 
-        // delete vaule
-        unset($values[$input->id]);
-
-        // update values
-        $this->update([
-            'values' => $values
-        ]);
-
-        return true;
-
+        return $releationships;
     }
-
-    public function get_inputs()
-    {
-        $inputs = $this->template->inputs;
-
-        //if inputs is not an array, make it an array
-
-        return $inputs;
-
-    }
-
-    // costum serialize
-    public function toArray()
-    {
-        $array = parent::toArray();
-        $array['template'] = $this->template;
-        $array['releationships'] = $this->releationships();
-        $array['teams'] = $this->teams;
-        $array['created_at'] = $this->created_at->format('Y-m-d H:i:s');
-        $array['inputs'] = $this->get_inputs();
-        return $array;
-    }
-} 
-
-
-
-
-
-
-
+}
 

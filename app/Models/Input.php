@@ -16,11 +16,10 @@ class Input extends Model
     /* This model will describe the input fields of a template
     - name: the name of the field
     - type: the type of the field
-    - value: the value of the field
+    - default: the default value of the field
     - required: if the field is required
     - options: the options of the field (if the field is a select)
     - placeholder: the placeholder of the field
-    - label: the label of the field
     - description: the description of the field
     - validation: the validation of the field
     - validation_message: the validation message of the field */
@@ -32,36 +31,52 @@ class Input extends Model
      * @var array<int, string>
      */
 
-
     protected $fillable = [
-        'template_id', // the template id of the field
+        'template_id', // added
         'name',
         'type',
-        'value',
+        'default',
         'required',
         'options',
         'placeholder',
-        'label',
         'description',
         'validation',
-        'validation_message',
-        'data'
+        'validation_message'
     ];
 
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array<int, string>
+     */
+
+    protected $hidden = [
+        'deleted_at',
+        'created_at',
+        'updated_at',
+    ];
+
+    // get the template of the input
     function template()
     {
         return $this->belongsTo(Template::class);
     }
 
+    // get the instances of the input
+    function instances()
+    {
+        return $this->hasMany(Instance::class);
+    }
 
-    public $availableTypes = [
-        'string',
-        'number',
-        'date',
-        'select',
-        'checkbox',
-    ];
+    // custom delete function
+    function delete()
+    {
+        // delete all instances of the input
+        $this->instances()->delete();
+
+        // delete the input
+        return parent::delete();
+    }
 
 }
-
-    

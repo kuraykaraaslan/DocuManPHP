@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('teams', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('title');
+            $table->string('name');
             $table->string('description')->nullable();
             //$table->string('template_id')->nullable();
             //$table->json('values')->nullable();
