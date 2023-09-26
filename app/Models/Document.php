@@ -74,46 +74,42 @@ class Document extends Model
     // get the instances of the document
     function instances()
     {
-        $template = $this->template;
-        $inputs = $template->inputs;
-
-        $instances = Instance::where('document_id', $this->id)->get();
-        $inputs = Input::where('template_id', $template->id)->get();
+        $template_inputs = $this->template->inputs;
+        $document_instances = $this->hasMany(Instance::class)->get();
 
         // create instances for the inputs that does not have instances
-        foreach ($inputs as $input) {
-            $instance = Instance::where('document_id', $this->id)
-                ->where('input_id', $input->id)
-                ->first();
-
-            if (!$instance) {
-                $instance = new Instance();
-                $instance->document_id = $this->id;
-                $instance->input_id = $input->id;
-                $instance->value = '';
-                $instance->save();
+        foreach ($template_inputs as $template_input) {
+            $document_instance = $document_instances->where('input_id', $template_input->id)->first();
+            if (!$document_instance) {
+                $document_instance = new Instance([
+                    'input_id' => $template_input->id,
+                    'document_id' => $this->id,
+                    'value' => $template_input->default,
+                ]);
+                
+                $document_instance->save();
+                $document_instances->push($document_instance);
             }
         }
 
-        // delete instances for the inputs that does not have inputs
-        foreach ($instances as $instance) {
-            $input = $inputs->where('id', $instance->input_id)->first();
-
-            if (!$input) {
-                $instance->delete();
+        // if the instance exist but the input does not exist in the template, delete the instance
+        foreach ($document_instances as $document_instance) {
+            $template_input = $template_inputs->where('id', $document_instance->input_id)->first();
+            if (!$template_input) {
+                $document_instance->delete();
             }
-
         }
+        
 
         // add the inputs to the instances
 
-        foreach ($instances as $instance) {
-            $input = $inputs->where('id', $instance->input_id)->first();
+        foreach ($document_instances as $instance) {
+            $input = $template_inputs->where('id', $instance->input_id)->first();
             $instance->input = $input;
         }
 
 
-        return $instances;
+        return $document_instances;
 
     }
 
@@ -137,6 +133,16 @@ class Document extends Model
             ->get();
 
         return $releationships;
+    }
+
+    // custom array of the document
+    public function toArray()
+    {
+        $array = parent::toArray();
+        $array['template'] = $this->template;
+        //human readable date
+        $array['created_at'] = $this->created_at->diffForHumans();
+        return $array;
     }
 }
 
